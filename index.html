@@ -1,56 +1,68 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <title>TP03 - Exercice 1</title>
-  <style>
-    body { margin: 0; overflow: hidden; }
-    canvas { display: block; }
-  </style>
-</head>
-<body>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
-  <script>
-    // --- Créer la scène ---
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87ceeb); // bleu ciel
+  <head>
+    <meta charset="UTF-8" />
+    <title>TP03 - Exercice 1</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Three.js et OrbitControls depuis CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
 
-    // --- Créer la caméra ---
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 20, 30);
+    <script>
+      // --- 1. Créer la scène ---
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x87ceeb); // ciel bleu clair
 
-    // --- Créer le renderer ---
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+      // --- 2. Créer la caméra ---
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      camera.position.set(0, 20, 30);
 
-    // --- Créer le plan (sol) ---
-    const planeGeometry = new THREE.PlaneGeometry(1000, 1000);
-    const planeMaterial = new THREE.MeshBasicMaterial({ color: 0x1e4d1e }); // vert foncé
-    const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-    plane.rotation.x = -Math.PI / 2; // horizontal
-    scene.add(plane);
-
-    // --- Ajouter OrbitControls ---
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.1;
-
-    // --- Animation ---
-    function animate() {
-      requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
-    }
-    animate();
-
-    // --- Adapter la taille à la fenêtre ---
-    window.addEventListener("resize", () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
+      // --- 3. Créer le renderer ---
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-  </script>
-</body>
+      document.body.appendChild(renderer.domElement);
+
+      // --- 4. Créer le plan (sol) ---
+      const planeGeometry = new THREE.PlaneGeometry(1000, 1000);
+      const planeMaterial = new THREE.MeshBasicMaterial({ color: 0x1e4d1e }); // vert foncé
+      const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+      plane.rotation.x = -Math.PI / 2; // horizontal
+      scene.add(plane);
+
+      // --- 5. Ajouter OrbitControls pour naviguer avec la souris ---
+      const controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.1;
+
+      // --- 6. Animation / rendu ---
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      // --- 7. Adapter à la taille de la fenêtre ---
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    </script>
+  </body>
 </html>
