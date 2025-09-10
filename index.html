@@ -2,7 +2,7 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <title>TP03 - Web3D Complet Corrigé</title>
+    <title>TP03 - Web3D Complet</title>
     <style>
       body {
         margin: 0;
@@ -29,29 +29,37 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.body.appendChild(renderer.domElement);
 
-      // --- Skybox ---
-      const loader = new THREE.CubeTextureLoader();
-      const skybox = loader.load([
-        "skybox/px.jpg",
-        "skybox/nx.jpg",
-        "skybox/py.jpg",
-        "skybox/ny.jpg",
-        "skybox/pz.jpg",
-        "skybox/nz.jpg",
-      ]);
+      // --- Skybox avec couleurs unies ---
+      const skyboxColors = [
+        0x87ceeb, // px - bleu ciel
+        0x87ceeb, // nx
+        0xffffff, // py - blanc
+        0x87ceeb, // ny
+        0x87ceeb, // pz
+        0x87ceeb, // nz
+      ];
+      const skyTextures = skyboxColors.map((color) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 64;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#" + color.toString(16).padStart(6, "0");
+        ctx.fillRect(0, 0, 64, 64);
+        return new THREE.CanvasTexture(canvas);
+      });
+      const skybox = new THREE.CubeTexture(skyTextures);
       scene.background = skybox;
 
-      // --- Plan (sol) avec couleur vert sombre ---
+      // --- Plan (sol) vert sombre ---
       const planeGeometry = new THREE.PlaneGeometry(1000, 1000);
-      const planeMaterial = new THREE.MeshBasicMaterial({ color: 0x1e4d1e }); // vert sombre
+      const planeMaterial = new THREE.MeshBasicMaterial({ color: 0x1e4d1e });
       const plane = new THREE.Mesh(planeGeometry, planeMaterial);
       plane.rotation.x = -Math.PI / 2;
       scene.add(plane);
 
-      // --- Cube joueur avec couleur jaune banane ---
+      // --- Cube joueur jaune banane ---
       const cubeSize = 5;
       const cubeGeometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
-      const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0xffeb3b }); // jaune banane
+      const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0xffeb3b });
       const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
       cube.position.y = cubeSize / 2;
       scene.add(cube);
@@ -66,7 +74,7 @@
       controls.maxDistance = 50;
       controls.maxPolarAngle = Math.PI / 2;
       controls.minPolarAngle = 0.3;
-      controls.enableKeys = false; // <<< désactive le clavier pour OrbitControls
+      controls.enableKeys = false;
 
       // --- Déplacements du cube ---
       const keys = {};
@@ -81,17 +89,34 @@
       window.addEventListener("keyup", (e) => (keys[e.code] = false));
 
       function updatePlayer() {
-        let forward = 0,
-          right = 0;
-        if (keys["KeyW"] || keys["KeyZ"]) forward += 1;
-        if (keys["KeyS"]) forward -= 1;
-        if (keys["KeyA"] || keys["KeyQ"]) right -= 1;
-        if (keys["KeyD"]) right += 1;
+        let moveX = 0,
+          moveZ = 0;
+        if (keys["KeyW"] || keys["KeyZ"]) moveZ -= 1;
+        if (keys["KeyS"]) moveZ += 1;
+        if (keys["KeyA"] || keys["KeyQ"]) moveX -= 1;
+        if (keys["KeyD"]) moveX += 1;
 
-        const direction = new THREE.Vector3(right, 0, forward).normalize();
-        if (direction.length() > 0) {
-          velocity.x += direction.x * acceleration;
-          velocity.z += direction.z * acceleration;
+        const moveVector = new THREE.Vector3(moveX, 0, moveZ);
+        if (moveVector.length() > 0) {
+          moveVector.normalize();
+
+          // Déplacement relatif à la caméra
+          const cameraDirection = new THREE.Vector3();
+          camera.getWorldDirection(cameraDirection);
+          cameraDirection.y = 0;
+          cameraDirection.normalize();
+
+          const cameraRight = new THREE.Vector3();
+          cameraRight
+            .crossVectors(new THREE.Vector3(0, 1, 0), cameraDirection)
+            .normalize();
+
+          const relativeMove = new THREE.Vector3();
+          relativeMove.addScaledVector(cameraDirection, -moveVector.z);
+          relativeMove.addScaledVector(cameraRight, moveVector.x);
+
+          velocity.x += relativeMove.x * acceleration;
+          velocity.z += relativeMove.z * acceleration;
         } else {
           velocity.x *= 1 - deceleration;
           velocity.z *= 1 - deceleration;
@@ -105,7 +130,6 @@
           jumpVelocity = 0.6;
           isOnGround = false;
         }
-
         if (!isOnGround) {
           jumpVelocity -= 0.02;
           cube.position.y += jumpVelocity;
@@ -116,6 +140,7 @@
           }
         }
 
+        // Appliquer déplacement
         cube.position.x += velocity.x;
         cube.position.z += velocity.z;
       }
@@ -124,11 +149,8 @@
       function animate() {
         requestAnimationFrame(animate);
         updatePlayer();
-
-        // Caméra suit le cube
         controls.target.copy(cube.position);
         controls.update();
-
         renderer.render(scene, camera);
       }
       animate();
