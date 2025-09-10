@@ -12,30 +12,30 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
   <script>
-    // --- Scène, caméra, rendu ---
+    // --- Créer la scène ---
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    scene.background = new THREE.Color(0x87ceeb); // bleu ciel
+
+    // --- Créer la caméra ---
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 20, 30);
 
+    // --- Créer le renderer ---
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    // --- Skybox simple bleu clair ---
-    scene.background = new THREE.Color(0x87ceeb); // bleu ciel
-
-    // --- Plan horizontal vert foncé (herbe) ---
+    // --- Créer le plan (sol) ---
     const planeGeometry = new THREE.PlaneGeometry(1000, 1000);
     const planeMaterial = new THREE.MeshBasicMaterial({ color: 0x1e4d1e }); // vert foncé
     const plane = new THREE.Mesh(planeGeometry, planeMaterial);
     plane.rotation.x = -Math.PI / 2; // horizontal
     scene.add(plane);
 
-    // --- OrbitControls pour naviguer la caméra ---
+    // --- Ajouter OrbitControls ---
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.1;
-    controls.enablePan = true;
 
     // --- Animation ---
     function animate() {
@@ -45,7 +45,7 @@
     }
     animate();
 
-    // --- Responsive ---
+    // --- Adapter la taille à la fenêtre ---
     window.addEventListener("resize", () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
