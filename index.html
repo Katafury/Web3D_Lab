@@ -1,150 +1,130 @@
 <!DOCTYPE html>
 <html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <title>TP03 - Web3D Complet</title>
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
+<head>
+  <meta charset="UTF-8">
+  <title>TP03 - Web3D Complet Corrigé</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
+  <script>
+    // --- Scène, caméra, rendu ---
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // --- Skybox ---
+    const loader = new THREE.CubeTextureLoader();
+    const skybox = loader.load([
+      "skybox/px.jpg", "skybox/nx.jpg",
+      "skybox/py.jpg", "skybox/ny.jpg",
+      "skybox/pz.jpg", "skybox/nz.jpg"
+    ]);
+    scene.background = skybox;
+
+    // --- Plan (sol) avec couleur vert sombre ---
+    const planeGeometry = new THREE.PlaneGeometry(1000, 1000);
+    const planeMaterial = new THREE.MeshBasicMaterial({ color: 0x1e4d1e }); // vert sombre
+    const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+    plane.rotation.x = -Math.PI / 2;
+    scene.add(plane);
+
+    // --- Cube joueur avec couleur jaune banane ---
+    const cubeSize = 5;
+    const cubeGeometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
+    const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0xffeb3b }); // jaune banane
+    const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+    cube.position.y = cubeSize / 2;
+    scene.add(cube);
+
+    // --- Caméra + OrbitControls ---
+    camera.position.set(20, 15, 20);
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.1;
+    controls.enablePan = false;
+    controls.minDistance = 10;
+    controls.maxDistance = 50;
+    controls.maxPolarAngle = Math.PI / 2;
+    controls.minPolarAngle = 0.3;
+    controls.enableKeys = false; // <<< désactive le clavier pour OrbitControls
+
+    // --- Déplacements du cube ---
+    const keys = {};
+    const velocity = new THREE.Vector3();
+    const acceleration = 0.05;
+    const deceleration = 0.02;
+    const maxSpeed = 0.5;
+    let isOnGround = true;
+    let jumpVelocity = 0;
+
+    window.addEventListener("keydown", (e) => keys[e.code] = true);
+    window.addEventListener("keyup", (e) => keys[e.code] = false);
+
+    function updatePlayer() {
+      let forward = 0, right = 0;
+      if (keys["KeyW"] || keys["KeyZ"]) forward += 1;
+      if (keys["KeyS"]) forward -= 1;
+      if (keys["KeyA"] || keys["KeyQ"]) right -= 1;
+      if (keys["KeyD"]) right += 1;
+
+      const direction = new THREE.Vector3(right, 0, forward).normalize();
+      if (direction.length() > 0) {
+        velocity.x += direction.x * acceleration;
+        velocity.z += direction.z * acceleration;
+      } else {
+        velocity.x *= (1 - deceleration);
+        velocity.z *= (1 - deceleration);
       }
-      canvas {
-        display: block;
+
+      velocity.x = Math.max(Math.min(velocity.x, maxSpeed), -maxSpeed);
+      velocity.z = Math.max(Math.min(velocity.z, maxSpeed), -maxSpeed);
+
+      // Saut
+      if ((keys["Space"]) && isOnGround) {
+        jumpVelocity = 0.6;
+        isOnGround = false;
       }
-    </style>
-  </head>
-  <body>
-    <!-- Three.js + OrbitControls -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
-    <script>
-      // --- Scène, caméra, rendu ---
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(
-        75,
-        window.innerWidth / window.innerHeight,
-        0.1,
-        1000
-      );
-      const renderer = new THREE.WebGLRenderer({ antialias: true });
+
+      if (!isOnGround) {
+        jumpVelocity -= 0.02;
+        cube.position.y += jumpVelocity;
+        if (cube.position.y <= cubeSize / 2) {
+          cube.position.y = cubeSize / 2;
+          isOnGround = true;
+          jumpVelocity = 0;
+        }
+      }
+
+      cube.position.x += velocity.x;
+      cube.position.z += velocity.z;
+    }
+
+    // --- Animation ---
+    function animate() {
+      requestAnimationFrame(animate);
+      updatePlayer();
+
+      // Caméra suit le cube
+      controls.target.copy(cube.position);
+      controls.update();
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // --- Responsive ---
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
-      document.body.appendChild(renderer.domElement);
-
-      // --- Skybox ---
-      const loader = new THREE.CubeTextureLoader();
-      const skybox = loader.load([
-        "skybox/px.jpg",
-        "skybox/nx.jpg",
-        "skybox/py.jpg",
-        "skybox/ny.jpg",
-        "skybox/pz.jpg",
-        "skybox/nz.jpg",
-      ]);
-      scene.background = skybox;
-
-      // --- Plan (sol) avec texture herbe ---
-      const textureLoader = new THREE.TextureLoader();
-      const grassTexture = textureLoader.load("textures/grass.jpg");
-      grassTexture.wrapS = grassTexture.wrapT = THREE.RepeatWrapping;
-      grassTexture.repeat.set(20, 20);
-
-      const planeGeometry = new THREE.PlaneGeometry(1000, 1000);
-      const planeMaterial = new THREE.MeshBasicMaterial({ map: grassTexture });
-      const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-      plane.rotation.x = -Math.PI / 2;
-      scene.add(plane);
-
-      // --- Cube joueur ---
-      const cubeSize = 5;
-      const cubeGeometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
-      const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-      const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-      cube.position.y = cubeSize / 2; // posé sur le sol
-      scene.add(cube);
-
-      // --- Caméra + OrbitControls ---
-      camera.position.set(20, 15, 20);
-      const controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.1;
-      controls.enablePan = false;
-      controls.minDistance = 10;
-      controls.maxDistance = 50;
-      controls.maxPolarAngle = Math.PI / 2; // limite vers le bas
-      controls.minPolarAngle = 0.3; // limite vers le haut
-
-      // --- Déplacements du cube ---
-      const keys = {};
-      const velocity = new THREE.Vector3();
-      const acceleration = 0.05;
-      const deceleration = 0.02;
-      const maxSpeed = 0.5;
-      let isOnGround = true;
-      let jumpVelocity = 0;
-
-      window.addEventListener("keydown", (e) => (keys[e.code] = true));
-      window.addEventListener("keyup", (e) => (keys[e.code] = false));
-
-      function updatePlayer() {
-        // Déplacement horizontal
-        let forward = 0,
-          right = 0;
-        if (keys["KeyW"]) forward += 1;
-        if (keys["KeyS"]) forward -= 1;
-        if (keys["KeyA"]) right -= 1;
-        if (keys["KeyD"]) right += 1;
-
-        const direction = new THREE.Vector3(right, 0, forward).normalize();
-        if (direction.length() > 0) {
-          velocity.x += direction.x * acceleration;
-          velocity.z += direction.z * acceleration;
-        } else {
-          velocity.x *= 1 - deceleration;
-          velocity.z *= 1 - deceleration;
-        }
-
-        velocity.x = Math.max(Math.min(velocity.x, maxSpeed), -maxSpeed);
-        velocity.z = Math.max(Math.min(velocity.z, maxSpeed), -maxSpeed);
-
-        // Saut
-        if (keys["Space"] && isOnGround) {
-          jumpVelocity = 0.6;
-          isOnGround = false;
-        }
-        if (!isOnGround) {
-          jumpVelocity -= 0.02; // gravité
-          cube.position.y += jumpVelocity;
-          if (cube.position.y <= cubeSize / 2) {
-            cube.position.y = cubeSize / 2;
-            isOnGround = true;
-            jumpVelocity = 0;
-          }
-        }
-
-        // Appliquer le déplacement
-        cube.position.x += velocity.x;
-        cube.position.z += velocity.z;
-      }
-
-      // --- Animation ---
-      function animate() {
-        requestAnimationFrame(animate);
-        updatePlayer();
-
-        // Caméra suit le cube
-        controls.target.copy(cube.position);
-        controls.update();
-
-        renderer.render(scene, camera);
-      }
-      animate();
-
-      // --- Responsive ---
-      window.addEventListener("resize", () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      });
-    </script>
-  </body>
+    });
+  </script>
+</body>
 </html>
