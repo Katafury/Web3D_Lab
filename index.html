@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>TP03 - Exercice 2 - Player Movement</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+    <script>
+      // --- Scène, caméra, rendu ---
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      const renderer = new THREE.WebGLRenderer();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      // --- Plan (sol) ---
+      const planeGeometry = new THREE.PlaneGeometry(1000, 1000);
+      const planeMaterial = new THREE.MeshBasicMaterial({ color: 0x228b22 });
+      const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+      plane.rotation.x = -Math.PI / 2;
+      scene.add(plane);
+
+      // --- Cube (joueur) ---
+      const cubeSize = 5;
+      const cubeGeometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
+      const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+      const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+      cube.position.y = cubeSize / 2; // posé sur le sol
+      scene.add(cube);
+
+      // --- Caméra ---
+      camera.position.set(0, 20, 30);
+      camera.lookAt(cube.position);
+
+      // --- Contrôles mouvement ---
+      const keys = {};
+      const velocity = new THREE.Vector3(0, 0, 0);
+      const acceleration = 0.05; // accélération progressive
+      const deceleration = 0.02; // ralentissement progressif
+      const maxSpeed = 0.5; // vitesse max
+      let isOnGround = true; // état du saut
+      let jumpVelocity = 0;
+
+      window.addEventListener("keydown", (e) => (keys[e.code] = true));
+      window.addEventListener("keyup", (e) => (keys[e.code] = false));
+
+      function animate() {
+        requestAnimationFrame(animate);
+
+        // Mouvement horizontal
+        let forward = 0,
+          right = 0;
+
+        if (keys["KeyW"]) forward += 1;
+        if (keys["KeyS"]) forward -= 1;
+        if (keys["KeyA"]) right -= 1;
+        if (keys["KeyD"]) right += 1;
+
+        // Direction du mouvement
+        const direction = new THREE.Vector3(right, 0, forward).normalize();
+
+        if (direction.length() > 0) {
+          velocity.x += direction.x * acceleration;
+          velocity.z += direction.z * acceleration;
+        } else {
+          // Décélération progressive
+          velocity.x *= 1 - deceleration;
+          velocity.z *= 1 - deceleration;
+        }
+
+        // Limiter la vitesse max
+        velocity.x = Math.max(Math.min(velocity.x, maxSpeed), -maxSpeed);
+        velocity.z = Math.max(Math.min(velocity.z, maxSpeed), -maxSpeed);
+
+        // --- Saut ---
+        if (keys["Space"] && isOnGround) {
+          jumpVelocity = 0.6; // force du saut
+          isOnGround = false;
+        }
+
+        if (!isOnGround) {
+          jumpVelocity -= 0.02; // gravité
+          cube.position.y += jumpVelocity;
+
+          if (cube.position.y <= cubeSize / 2) {
+            cube.position.y = cubeSize / 2;
+            isOnGround = true;
+            jumpVelocity = 0;
+          }
+        }
+
+        // Appliquer mouvement horizontal
+        cube.position.x += velocity.x;
+        cube.position.z += velocity.z;
+
+        // Caméra suit le cube
+        camera.lookAt(cube.position);
+
+        renderer.render(scene, camera);
+      }
+
+      animate();
+
+      // --- Responsive ---
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    </script>
+  </body>
+</html>
